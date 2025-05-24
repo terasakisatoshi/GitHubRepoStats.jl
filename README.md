@@ -1,0 +1,220 @@
+# GitHubRepoStats.jl
+
+A Julia package for retrieving GitHub repository statistics using the GitHub GraphQL API.
+
+## Features
+
+- Get repository star count
+- Get last updated date
+- Get repository description
+- Support for both authenticated and unauthenticated requests
+- **Bulk processing of Julia General Registry packages**
+- **DataFrame output for easy data analysis**
+- Built with HTTP.jl and JSON3.jl for efficient API calls
+
+## Installation
+
+```julia
+# In Julia REPL, press ] to enter package mode
+pkg> add https://github.com/yourusername/GitHubRepoStats.jl
+
+# Or using Pkg
+using Pkg
+Pkg.add(url="https://github.com/yourusername/GitHubRepoStats.jl")
+```
+
+## Quick Start
+
+```julia
+using GitHubRepoStats
+
+# Get repository statistics (without authentication)
+stats = get_repo_stats("JuliaLang", "Julia")
+println(stats)
+```
+
+## Usage
+
+### Basic Usage
+
+```julia
+using GitHubRepoStats
+
+# Get stats for a repository
+stats = get_repo_stats("JuliaLang", "Julia")
+
+# Access individual fields
+println("Repository: $(stats.owner)/$(stats.name)")
+println("Stars: $(stats.stars)")
+println("Last Updated: $(stats.updated_at)")
+println("Description: $(stats.description)")
+```
+
+### Using with GitHub Token (Recommended)
+
+For higher rate limits and access to private repositories, use a GitHub personal access token:
+
+```julia
+# Set your token as an environment variable for security
+# export GITHUB_TOKEN="your_token_here"
+
+token = ENV["GITHUB_TOKEN"]
+stats = get_repo_stats("JuliaLang", "Julia", token=token)
+println(stats)
+```
+
+### Julia General Registry Analysis
+
+Get statistics for all packages in the Julia General Registry as a DataFrame:
+
+```julia
+using GitHubRepoStats
+using DataFrames
+
+# Get stats for all General Registry packages
+df = get_general_registry_stats(token="your_github_token")
+
+# Or limit to first 50 packages for testing
+df = get_general_registry_stats(token="your_token", max_repos=50)
+
+# Analyze the data
+sort!(df, :stars, rev=true)
+println("Top 10 most starred Julia packages:")
+println(first(df, 10))
+
+# Group by owner
+using Statistics
+owner_stats = combine(groupby(df, :owner),
+                     :stars => sum => :total_stars,
+                     nrow => :repo_count)
+sort!(owner_stats, :total_stars, rev=true)
+println(first(owner_stats, 5))
+```
+
+### Batch Processing
+
+```julia
+using GitHubRepoStats
+
+repos = [
+    ("JuliaLang", "Julia"),
+    ("JuliaLang", "Pkg.jl"),
+    ("JuliaData", "DataFrames.jl")
+]
+
+token = get(ENV, "GITHUB_TOKEN", nothing)
+
+for (owner, repo) in repos
+    try
+        stats = get_repo_stats(owner, repo, token=token)
+        println("$(stats.owner)/$(stats.name): $(stats.stars) stars")
+    catch e
+        println("Error getting stats for $owner/$repo: $e")
+    end
+    sleep(0.1)  # Be nice to the API
+end
+```
+
+## API Reference
+
+### Types
+
+#### `RepoStats`
+
+A structure containing repository statistics.
+
+**Fields:**
+- `name::String`: Repository name
+- `owner::String`: Repository owner (username or organization)
+- `stars::Int`: Number of stars
+- `updated_at::DateTime`: Last updated date
+- `description::Union{String, Nothing}`: Repository description
+
+### Functions
+
+#### `get_repo_stats(owner, repo; token=nothing)`
+
+Retrieve repository statistics from GitHub.
+
+**Arguments:**
+- `owner::String`: Repository owner (username or organization)
+- `repo::String`: Repository name
+- `token::Union{String, Nothing}`: GitHub personal access token (optional)
+
+**Returns:**
+- `RepoStats`: Repository statistics
+
+**Throws:**
+- Error if repository is not found or not accessible
+- Error if authentication fails (with token)
+- Error if rate limit is exceeded
+
+#### `get_general_registry_stats(; token=nothing, max_repos=nothing, show_progress=true, delay=0.5)`
+
+Get statistics for all packages in the Julia General Registry as a DataFrame.
+
+**Arguments:**
+- `token::Union{String, Nothing}`: GitHub personal access token (optional)
+- `max_repos::Union{Int, Nothing}`: Maximum number of repositories to process (optional)
+- `show_progress::Bool`: Whether to show progress messages (default: true)
+- `delay::Real`: Delay between API calls in seconds (default: 0.5)
+
+**Returns:**
+- `DataFrame`: DataFrame with columns: repository, owner, stars, updated_at, description
+
+#### `extract_owner_repo(url)`
+
+Extract owner and repository name from a GitHub URL.
+
+**Arguments:**
+- `url::String`: GitHub repository URL
+
+**Returns:**
+- `Union{Tuple{String, String}, Nothing}`: (owner, repo) tuple or nothing if parsing fails
+
+## GitHub Token Setup
+
+1. Go to [GitHub Settings > Developer settings > Personal access tokens](https://github.com/settings/tokens)
+2. Click "Generate new token"
+3. Select scopes (for public repositories, no additional scopes needed)
+4. Copy the token
+5. Set it as an environment variable:
+   ```bash
+   export GITHUB_TOKEN="your_token_here"
+   ```
+
+## Rate Limits
+
+- **Without token**: 60 requests per hour per IP
+- **With token**: 5,000 requests per hour per user
+
+## Error Handling
+
+The package provides informative error messages for common issues:
+
+- Repository not found
+- Authentication failures
+- Rate limit exceeded
+- Network errors
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is licensed under the MIT License.
+
+## Dependencies
+
+- [JSON3.jl](https://github.com/quinnj/JSON3.jl): Fast JSON parsing
+- [HTTP.jl](https://github.com/JuliaWeb/HTTP.jl): HTTP client
+- [DataFrames.jl](https://github.com/JuliaData/DataFrames.jl): Data manipulation
+- [Dates](https://docs.julialang.org/en/v1/stdlib/Dates/): Date and time handling
+- [TOML](https://docs.julialang.org/en/v1/stdlib/TOML/): Configuration parsing
+- [Pkg](https://docs.julialang.org/en/v1/stdlib/Pkg/): Package management
+
+## Similar Packages
+
+- [GitHub.jl](https://github.com/JuliaWeb/GitHub.jl): More comprehensive GitHub API wrapper
+- [GitHubAPI.jl](https://github.com/JuliaLang/GitHubAPI.jl): Another GitHub API client# GeneralRegistryStats.jl
