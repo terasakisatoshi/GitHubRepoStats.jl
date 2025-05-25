@@ -262,21 +262,17 @@ function get_general_registry_stats(; token::Union{String, Nothing} = nothing,
 
     # 全パッケージのリポジトリURLを取得
     repo_urls = map(collect(values(general_registry.pkgs))) do pkg
-        try
-            package_toml = TOML.parse(in_memory_registry[joinpath(pkg.path, "Package.toml")])
-            return get(package_toml, "repo", ""), pkg.name
-        catch
-            return ""
-        end
+        package_toml = TOML.parse(in_memory_registry[joinpath(pkg.path, "Package.toml")])
+        return package_toml["repo"], pkg.name
     end
 
     # URLからowner/repoを抽出
-    owner_repo_pairs = map(repo_urls) do (url, name)
-        extract_owner_repo(url), name
+    valid_triplets=[] 
+    for (url, name) in repo_urls
+        e = extract_owner_repo(url)
+        isnothing(e) && continue
+        push!(valid_triplets, (e..., name))
     end
-
-    # 有効なペアのみをフィルタ
-    valid_triplets = filter((url, name) -> !isnothing(url), owner_repo_pairs)
 
     # 最大数を制限（指定された場合）
     if max_repos !== nothing
