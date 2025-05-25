@@ -264,31 +264,32 @@ function get_general_registry_stats(; token::Union{String, Nothing} = nothing,
     repo_urls = map(collect(values(general_registry.pkgs))) do pkg
         try
             package_toml = TOML.parse(in_memory_registry[joinpath(pkg.path, "Package.toml")])
-            return get(package_toml, "repo", "")
+            return get(package_toml, "repo", ""), pkg.name
         catch
             return ""
         end
     end
 
     # URLからowner/repoを抽出
-    owner_repo_pairs = map(repo_urls) do url
-        extract_owner_repo(url)
+    owner_repo_pairs = map(repo_urls) do (url, name)
+        extract_owner_repo(url), name
     end
 
     # 有効なペアのみをフィルタ
-    valid_pairs = filter(!isnothing, owner_repo_pairs)
+    valid_triplets = filter((url, name) -> !isnothing(url), owner_repo_pairs)
 
     # 最大数を制限（指定された場合）
     if max_repos !== nothing
-        valid_pairs = valid_pairs[1:min(max_repos, length(valid_pairs))]
+        valid_triplets = valid_triplets[1:min(max_repos, length(valid_triplets))]
     end
 
     if show_progress
-        println("処理対象リポジトリ数: $(length(valid_pairs))")
+        println("処理対象リポジトリ数: $(length(valid_triplets))")
         println("統計情報を取得中...\n")
     end
 
     # 結果を格納するベクター
+    pkgnames = String[]
     repositories = String[]
     owners = String[]
     stars = Int[]
@@ -296,16 +297,17 @@ function get_general_registry_stats(; token::Union{String, Nothing} = nothing,
     descriptions = Union{String, Missing}[]
 
     # 各リポジトリの統計を取得
-    for (i, (owner, repo)) in enumerate(valid_pairs)
+    for (i, (owner, repo, name)) in enumerate(valid_triplets)
         try
             if show_progress
-                print("[$i/$(length(valid_pairs))] $owner/$repo を処理中...")
+                print("[$i/$(length(valid_triplets))] $owner/$repo を処理中...")
             end
 
             # リポジトリ統計を取得
             stats = get_repo_stats(string(owner), string(repo), token=token)
 
             # 結果をベクターに追加
+            push!(pkgnames, name)
             push!(repositories, stats.name)
             push!(owners, stats.owner)
             push!(stars, stats.stars)
@@ -324,13 +326,14 @@ function get_general_registry_stats(; token::Union{String, Nothing} = nothing,
         end
 
         # レート制限を考慮した待機
-        if i < length(valid_pairs) && delay > 0
+        if i < length(valid_triplets) && delay > 0
             sleep(delay)
         end
     end
 
     # DataFrameを作成
     df = DataFrame(
+        pkg = pkgnames,
         repository = repositories,
         owner = owners,
         stars = stars,
