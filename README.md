@@ -132,14 +132,14 @@ A structure containing repository statistics.
 
 ### Functions
 
-#### `get_repo_stats(owner, repo; token=nothing)`
+#### `get_repo_stats(owner, repo; token=get(ENV, "GITHUB_TOKEN", nothing))`
 
 Retrieve repository statistics from GitHub.
 
 **Arguments:**
 - `owner::String`: Repository owner (username or organization)
 - `repo::String`: Repository name
-- `token::Union{String, Nothing}`: GitHub personal access token (optional)
+- `token::Union{String, Nothing}`: GitHub personal access token (defaults to ENV["GITHUB_TOKEN"])
 
 **Returns:**
 - `RepoStats`: Repository statistics
@@ -149,18 +149,18 @@ Retrieve repository statistics from GitHub.
 - Error if authentication fails (with token)
 - Error if rate limit is exceeded
 
-#### `get_general_registry_stats(; token=nothing, max_repos=nothing, show_progress=true, delay=0.5)`
+#### `get_general_registry_stats(; token=get(ENV, "GITHUB_TOKEN", nothing), max_repos=nothing, show_progress=true, delay=0.5)`
 
 Get statistics for all packages in the Julia General Registry as a DataFrame.
 
 **Arguments:**
-- `token::Union{String, Nothing}`: GitHub personal access token (optional)
+- `token::Union{String, Nothing}`: GitHub personal access token (defaults to ENV["GITHUB_TOKEN"])
 - `max_repos::Union{Int, Nothing}`: Maximum number of repositories to process (optional)
 - `show_progress::Bool`: Whether to show progress messages (default: true)
 - `delay::Real`: Delay between API calls in seconds (default: 0.5)
 
 **Returns:**
-- `DataFrame`: DataFrame with columns: repository, owner, stars, updated_at, description
+- `DataFrame`: DataFrame with columns: pkg, repository, owner, stars, updated_at, description
 
 #### `extract_owner_repo(url)`
 
@@ -217,4 +217,4 @@ This project is licensed under the MIT License.
 ## Similar Packages
 
 - [GitHub.jl](https://github.com/JuliaWeb/GitHub.jl): More comprehensive GitHub API wrapper
-- [GitHubAPI.jl](https://github.com/JuliaLang/GitHubAPI.jl): Another GitHub API client# GeneralRegistryStats.jl
+- [GitHubAPI.jl](https://github.com/JuliaLang/GitHubAPI.jl): Another GitHub API client

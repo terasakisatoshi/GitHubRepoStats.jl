@@ -10,7 +10,6 @@ using Statistics
 import TOML
 using Random
 import Pkg
-using CSV
 export get_repo_stats, RepoStats, get_general_registry_stats, extract_owner_repo
 
 """
@@ -348,11 +347,6 @@ function get_general_registry_stats(; token::Union{String, Nothing} = get(ENV, "
             end
         end
     end
-
-    # Save as CSV file
-    output_file = "github_repo_stats.csv"
-    CSV.write(output_file, df)
-    println("Results saved to $output_file")
 
     return df
 end
