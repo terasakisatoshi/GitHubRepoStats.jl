@@ -61,7 +61,7 @@ using DataFrames
         # Test that the function returns a DataFrame
         df = get_general_registry_stats(max_repos=0, show_progress=false, delay=0, token=nothing)
         @test isa(df, DataFrame)
-        @test names(df) == ["repository", "owner", "stars", "updated_at", "description"]
+        @test names(df) == ["pkg", "repository", "owner", "stars", "updated_at", "description"]
     end
 
     # Note: Real API tests would require a GitHub token and internet connection
@@ -82,7 +82,7 @@ using DataFrames
         #         # Test DataFrame functionality with real data
         #         df = get_general_registry_stats(token=token, max_repos=2, show_progress=false)
         #         @test nrow(df) <= 2
-        #         @test names(df) == ["repository", "owner", "stars", "updated_at", "description"]
+        #         @test names(df) == ["pkg", "repository", "owner", "stars", "updated_at", "description"]
         #     end
         # else
         #     @warn "Skipping real API tests - no GITHUB_TOKEN environment variable set"

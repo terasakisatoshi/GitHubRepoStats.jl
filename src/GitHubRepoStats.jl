@@ -60,7 +60,7 @@ println("Last updated: \$(stats.updated_at)")
 println("Description: \$(stats.description)")
 ```
 """
-function get_repo_stats(owner::String, repo::String; token::Union{String, Nothing} = nothing)
+function get_repo_stats(owner::String, repo::String; token::Union{String, Nothing} = get(ENV, "GITHUB_TOKEN", nothing))
     # GitHub GraphQL API endpoint
     endpoint = "https://api.github.com/graphql"
 
@@ -206,7 +206,7 @@ function extract_owner_repo(url::String)
 end
 
 """
-    get_general_registry_stats(; token::Union{String, Nothing} = nothing,
+    get_general_registry_stats(; token::Union{String, Nothing} = get(ENV, "GITHUB_TOKEN", nothing),
                                max_repos::Union{Int, Nothing} = nothing,
                                show_progress::Bool = true,
                                delay::Real = 0.5)
@@ -236,7 +236,7 @@ sort!(df, :stars, rev=true)
 println(first(df, 5))
 ```
 """
-function get_general_registry_stats(; token::Union{String, Nothing} = nothing,
+function get_general_registry_stats(; token::Union{String, Nothing} = get(ENV, "GITHUB_TOKEN", nothing),
                                    max_repos::Union{Int, Nothing} = nothing,
                                    show_progress::Bool = true,
                                    delay::Real = 0.5)
@@ -267,7 +267,7 @@ function get_general_registry_stats(; token::Union{String, Nothing} = nothing,
     end
 
     # URLからowner/repoを抽出
-    valid_triplets=[] 
+    valid_triplets=[]
     for (url, name) in repo_urls
         e = extract_owner_repo(url)
         isnothing(e) && continue
