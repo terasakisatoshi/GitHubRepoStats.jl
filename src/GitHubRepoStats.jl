@@ -194,7 +194,7 @@ result = extract_owner_repo("https://github.com/JuliaLang/Julia.git")
 function extract_owner_repo(url::String)
     regex = r"^https?://github\.com/(?P<owner>[^/]+)/(?P<repo>[^/]+?)(?:\.git)?$"
 
-    # マッチング
+    # Match the regex pattern
     m = match(regex, url)
     if m !== nothing
         owner = m["owner"]
@@ -247,26 +247,26 @@ function get_general_registry_stats(; token::Union{String, Nothing} = get(ENV, "
     end
 
     if show_progress
-        println("=== Julia General Registry 統計情報取得 ===")
+        println("=== Julia General Registry Statistics Collection ===")
     end
 
-    # General Registry を取得
+    # Get General Registry
     general_registry = filter(Pkg.Registry.reachable_registries()) do r
         r.name == "General"
     end |> only
     in_memory_registry = general_registry.in_memory_registry
 
     if show_progress
-        println("General Registry を読み込み中...")
+        println("Loading General Registry...")
     end
 
-    # 全パッケージのリポジトリURLを取得
+    # Get repository URLs for all packages
     repo_urls = map(collect(values(general_registry.pkgs))) do pkg
         package_toml = TOML.parse(in_memory_registry[joinpath(pkg.path, "Package.toml")])
         return package_toml["repo"], pkg.name
     end
 
-    # URLからowner/repoを抽出
+        # Extract owner/repo from URLs
     valid_triplets=[]
     for (url, name) in repo_urls
         e = extract_owner_repo(url)
@@ -274,17 +274,17 @@ function get_general_registry_stats(; token::Union{String, Nothing} = get(ENV, "
         push!(valid_triplets, (e..., name))
     end
 
-    # 最大数を制限（指定された場合）
+    # Limit to maximum number (if specified)
     if max_repos !== nothing
         valid_triplets = valid_triplets[1:min(max_repos, length(valid_triplets))]
     end
 
     if show_progress
-        println("処理対象リポジトリ数: $(length(valid_triplets))")
-        println("統計情報を取得中...\n")
+        println("Number of repositories to process: $(length(valid_triplets))")
+        println("Collecting statistics...\n")
     end
 
-    # 結果を格納するベクター
+    # Vectors to store results
     pkgnames = String[]
     repositories = String[]
     owners = String[]
@@ -292,17 +292,17 @@ function get_general_registry_stats(; token::Union{String, Nothing} = get(ENV, "
     updated_ats = DateTime[]
     descriptions = Union{String, Missing}[]
 
-    # 各リポジトリの統計を取得
+    # Get statistics for each repository
     for (i, (owner, repo, name)) in enumerate(valid_triplets)
         try
             if show_progress
-                print("[$i/$(length(valid_triplets))] $owner/$repo を処理中...")
+                print("[$i/$(length(valid_triplets))] Processing $owner/$repo...")
             end
 
-            # リポジトリ統計を取得
+            # Get repository statistics
             stats = get_repo_stats(string(owner), string(repo), token=token)
 
-            # 結果をベクターに追加
+            # Add results to vectors
             push!(pkgnames, name)
             push!(repositories, stats.name)
             push!(owners, stats.owner)
@@ -317,17 +317,17 @@ function get_general_registry_stats(; token::Union{String, Nothing} = get(ENV, "
 
         catch e
             if show_progress
-                println(" ❌ エラー: $e")
+                println(" ❌ Error: $e")
             end
         end
 
-        # レート制限を考慮した待機
+        # Wait to respect rate limits
         if i < length(valid_triplets) && delay > 0
             sleep(delay)
         end
     end
 
-    # DataFrameを作成
+    # Create DataFrame
     df = DataFrame(
         pkg = pkgnames,
         repository = repositories,
@@ -338,21 +338,21 @@ function get_general_registry_stats(; token::Union{String, Nothing} = get(ENV, "
     )
 
     if show_progress
-        println("\n=== 完了 ===")
-        println("取得成功: $(nrow(df)) repositories")
+        println("\n=== Completed ===")
+        println("Successfully collected: $(nrow(df)) repositories")
         if nrow(df) > 0
             valid_stars = filter(x -> x > 0, df.stars)
             if !isempty(valid_stars)
-                println("平均スター数: $(round(mean(valid_stars), digits=1))")
-                println("最大スター数: $(maximum(valid_stars))")
+                println("Average stars: $(round(mean(valid_stars), digits=1))")
+                println("Maximum stars: $(maximum(valid_stars))")
             end
         end
     end
 
-    # CSVファイルとして保存
+    # Save as CSV file
     output_file = "github_repo_stats.csv"
     CSV.write(output_file, df)
-    println("結果を $output_file に保存しました")
+    println("Results saved to $output_file")
 
     return df
 end
